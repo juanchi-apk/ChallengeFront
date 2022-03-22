@@ -1,9 +1,23 @@
 import Head from 'next/head'
 import Image from 'next/image'
-import styles from '../styles/Home.module.css'
+import styles from '../styles/Home.module.scss'
+import { getArticles } from './api/articlesService'
+import ArticleItem from '../components/ArticleItem'
+import { useEffect, useState, useContext } from 'react'
+import {Grid , Paper} from '@mui/material';
+import BottomTabNavigator from '../components/BottomTabNavigator'
+export default function Home({articles}) {
 
-export default function Home() {
-  return (
+const [articleList, setArticleList] = useState()
+
+
+useEffect(()=>{
+
+ setArticleList(articles.filter( article=> article.subtype=="7"))
+
+},[])
+
+return (
     <div className={styles.container}>
       <Head>
         <title>Create Next App</title>
@@ -11,59 +25,91 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
+
+   
       <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+      <div className='header'></div>
+      
+      
+      <Grid container direction="row" className = {styles.mainSection}>
+      
+      <Grid item md={12} lg={9}   className={styles.articleList}>
+      <Grid container spacing={1} wrap="wrap" direction="row">
+      {
+      articleList?.map( article =>{
+      return( 
+              <Grid item  lg={4} md={6} sm={12}>
+              <ArticleItem key={article._id} articleData={article} />
+              </Grid>
+           )})  
+      }
+      </Grid>
+      
+      </Grid>
+      <Grid md={0} lg={3} className ={styles.sideBar}></Grid>
+      
+      </Grid>
+      <Paper   sx={{  position: 'fixed' , display:{ md: 'block' , lg:'none'}, bottom: 0, left: 0, right: 0 }} elevation={3}>
+        <BottomTabNavigator sx={{}}/>
+      </Paper>
       </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
     </div>
   )
+}
+
+
+
+export async function getServerSideProps(){
+const articles = await getArticles()
+
+
+articles.forEach(article => {
+  let orderedTags = normalizeTag(article.taxonomy.tags)
+  let normalizeDate = parseDate(new Date(article.display_date))
+  article.display_date=normalizeDate;
+  article.taxonomy.tags = orderedTags
+
+ 
+});
+
+
+function normalizeTag(tagsArray){
+
+ for (let i = 0; i < tagsArray.length; i++) {
+   
+   for (let j = 0; j < tagsArray.length; j++) {
+    if(tagsArray[j+1] && (tagsArray[j].text > tagsArray[j + 1].text)){
+      
+      let aux = tagsArray[j];
+      tagsArray[j] = tagsArray[j + 1];
+      tagsArray[j + 1] = aux;
+    }
+   
+    }
+  
+  }
+  
+  if(tagsArray.length > 10){
+    return tagsArray.slice(0,10);
+    
+    
+  }else{
+    return tagsArray;
+  }
+
+}
+
+
+function parseDate(date){
+  let monthList = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+  let fullDate =  `${date.getDate()} de ${monthList[date.getMonth()]} de ${date.getFullYear()}`
+  
+  return fullDate
+
+}
+
+
+return({props:{
+  articles,
+}})
 }
